@@ -15,6 +15,7 @@ const props = defineProps({
 // 声明子组建实例，组建被mounted后该值会被自动绑定
 const basicAudioPlayer = ref(null)
 const playTranscript = ref(null)
+const shortCutKey = ref(null)
 
 let bookNum = ref(props.defaultBookNum)
 let testNum = ref(props.defaultTestNum)
@@ -49,6 +50,9 @@ let loopPointB = ref(99999)
 // 控制上一句和下一句选中状态
 let prevOrNext = ref('')
 
+// 编辑区
+let editable = ref(false)
+
 // 播放列表
 let audioListName = ref('默认播放列表')
 let audioList = ref([{ title: '', src: '' }])
@@ -72,8 +76,16 @@ watchEffect(async () => {
     videoPrefix + 'book-' + bookNum.value + '/test-' + testNum.value + '/' + json.videoPath
   let title = '【听力】C' + bookNum.value + ' Test ' + testNum.value + ' Part ' + partNum.value
   audioList.value = [{ title, src: video }]
-  // 初始化ab循环播放点B
+
+  playStatus.value = 'stop'
+  currentItemIndex.value = 0
+  itemLoopMode.value = 'no'
+  itemLoopCount.value = 3
+  currentItemLoopCount.value = 0
+  loopPointA.value = 0
   loopPointB.value = article.value.playItems.length
+  prevOrNext.value = ''
+  basicAudioPlayer.value.pause()
 })
 
 function switchArticle(bookId, testId, partId) {
@@ -116,6 +128,7 @@ function seekItem(index) {
   let seekTime = article.value.playItems[index].startTime
   basicAudioPlayer.value.seekTime(seekTime)
   currentItemIndex.value = index
+  currentItemLoopCount.value = 0
 
   if (playStatus.value != 'playing') {
     play()
@@ -125,10 +138,18 @@ function seekItem(index) {
   if (currentItemIndex.value > loopPointB.value || currentItemIndex.value < loopPointA.value) {
     cancelAbLoop()
   }
+
+  // 更新滚动位置
+  updateTranscriptItemIndex(index)
+}
+
+function updateTranscriptItemIndex(index) {
+  playTranscript.value.chooseItem(playTranscript.value, index)
 }
 
 function toggleItemLoopMode(mode) {
   itemLoopMode.value = mode
+  currentItemLoopCount.value = 0
 }
 
 //supportItemLoopModes
@@ -259,10 +280,32 @@ function onPlaying() {
         }
       } else {
         currentItemIndex.value = findItemIndex(currentTime)
+        updateTranscriptItemIndex(currentItemIndex.value)
       }
     } else {
       currentItemIndex.value = findItemIndex(currentTime)
+      updateTranscriptItemIndex(currentItemIndex.value)
     }
+  }
+}
+
+function setTranscriptEditable(state) {
+  if (editable.value != state) {
+    console.log('set transcript editable:' + state)
+    editable.value = state
+    playTranscript.value.setEditable(state, currentItemIndex.value)
+  } else {
+    console.log('[setTranscriptEditable] ignore state: ' + state)
+  }
+}
+
+function setShortCutKeyEditable(state) {
+  if (editable.value != state) {
+    console.log('set short key editable:' + state)
+    editable.value = state
+    shortCutKey.value.setEditable(state)
+  } else {
+    console.log('[setShortCutKeyEditable] ignore state: ' + state)
   }
 }
 </script>
@@ -281,8 +324,9 @@ function onPlaying() {
     <PlayTranscript
       ref="playTranscript"
       :play-items="article.playItems"
-      :currentItemIndex="currentItemIndex"
+      :editable="editable"
       @choose-item="(index) => seekItem(index)"
+      @set-short-cut-key-editable="(state) => setShortCutKeyEditable(state)"
     ></PlayTranscript>
 
     <div>
@@ -307,6 +351,7 @@ function onPlaying() {
     </div>
 
     <ShortCutKey
+      ref="shortCutKey"
       @pause-or-play="playStatus == 'playing' ? pause() : play()"
       @play-next="playNext()"
       @play-prev="playPrev()"
@@ -314,6 +359,7 @@ function onPlaying() {
       @set-loop-count="(count) => setItemLoopCount(count)"
       @set-point-a="(indexA) => setLoopPointA(indexA)"
       @set-point-b="(indexB) => setLoopPointB(indexB)"
+      @set-transcript-editable="(state) => setTranscriptEditable(state)"
     ></ShortCutKey>
   </div>
 </template>
