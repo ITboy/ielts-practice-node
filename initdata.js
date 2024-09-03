@@ -62,7 +62,7 @@ async function queryArticleData(bId) {
 
 async function saveArticle(bookId, testId, partId, body) {
   const url =
-    'http://127.0.0.1:8080/cambridge-listening/player/save-article?' +
+    '/cambridge-listening/player/save-article?' +
     new URLSearchParams({ bookId, testId, partId }).toString()
   console.log(url)
   try {

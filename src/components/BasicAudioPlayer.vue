@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
 import VueAudioPlayer from '@liripeng/vue-audio-player'
 
@@ -9,7 +9,7 @@ const props = defineProps({
 const emit = defineEmits(['onPlay', 'onPause'])
 
 // 声明底层播放器实例，该值会在组建挂载后被自动绑定
-const rawAudioPlayer = ref(null)
+const rawAudioPlayer: any = ref(null)
 
 function play() {
   rawAudioPlayer.value.play()
@@ -19,7 +19,7 @@ function pause() {
   rawAudioPlayer.value.pause()
 }
 
-function seekTime(seekTime) {
+function seekTime(seekTime: number) {
   rawAudioPlayer.value.$refs.audio.currentTime = seekTime / 1000
 }
 
@@ -32,9 +32,7 @@ defineExpose({
 
 <template>
   <div>
-    <div class="name">
-      {{ currentAudioName || audioList[0].title }}
-    </div>
+    <div class="name">{{ audioList[0].title as string }}</div>
     <VueAudioPlayer
       ref="rawAudioPlayer"
       :audio-list="audioList"
