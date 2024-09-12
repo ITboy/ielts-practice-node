@@ -40,6 +40,7 @@ defineExpose({
       @pause="$emit('onPause')"
       @progress-end="$emit('progressEnd')"
       @playing="$emit('playing')"
+      @loadedmetadata="$emit('loadedmetadata')"
     >
     </VueAudioPlayer>
   </div>

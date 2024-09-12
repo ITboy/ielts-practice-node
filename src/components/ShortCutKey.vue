@@ -5,11 +5,14 @@ const emit = defineEmits([
   'pauseOrPlay', // 空格
   'playNext', // n
   'playPrev', // p
+  'splitItem', // j
+  'goToFirst', // gg
   'setNextLoopMode', // ll
   'setLoopCount', // l+数字，l0表示无限循环
   'setPointA', // a+数字
   'setPointB', // b+数字
-  'setTranscriptEditable'
+  'setTranscriptEditable',
+  'setNextListMode' // ls
 ])
 const EscKey = 'Escape'
 
@@ -18,11 +21,16 @@ const commands = [
   { finalPattern: /^\x20$/, event: 'pauseOrPlay' },
   { finalPattern: /^n$/, event: 'playNext' },
   { finalPattern: /^p$/, event: 'playPrev' },
+  { finalPattern: /^j$/, event: 'splitItem' },
+  {
+    pendingPattern: /^g$/,
+    finalPattern: /^gg$/,
+    event: 'goToFirst'
+  },
   {
     pendingPattern: /^l$/,
     finalPattern: /^ll$/,
-    event: 'setNextLoopMode',
-    convert: Number.parseInt
+    event: 'setNextLoopMode'
   },
   {
     pendingPattern: /^l(\d{0,2})$/,
@@ -41,6 +49,11 @@ const commands = [
     finalPattern: /^b(\d{1,3})$/,
     event: 'setPointB',
     convert: Number.parseInt
+  },
+  {
+    pendingPattern: /^l$/,
+    finalPattern: /^ls$/,
+    event: 'setNextListMode'
   }
 ]
 
