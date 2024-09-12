@@ -9,7 +9,14 @@ const props = defineProps({
   loopPointB: Number,
   prevOrNext: String // 控制上一句和下一句按钮高亮状态
 })
-const emit = defineEmits(['play', 'pause', 'playPrev', 'playNext', 'toggleLoop'])
+const emit = defineEmits([
+  'play',
+  'pause',
+  'playPrev',
+  'playNext',
+  'toggleLoop',
+  'switchListLoopMode'
+])
 
 function playOrPause() {
   if (props.playState == 'playing') {
@@ -25,6 +32,10 @@ function playPrev() {
 
 function playNext() {
   emit('playNext')
+}
+
+function switchListLoopMode() {
+  emit('switchListLoopMode')
 }
 
 function toggleSingleItemLoop() {
@@ -105,6 +116,12 @@ function toggleAbItemLoop() {
           <div>X {{ itemLoopCount }}</div>
           <div>{{ loopPointA + 1 }} -> {{ loopPointB + 1 }}</div>
         </div>
+      </div>
+    </div>
+
+    <div class="control-line">
+      <div class="button-group">
+        <button class="big" @click="switchListLoopMode()">切换列表循环</button>
       </div>
     </div>
   </div>
