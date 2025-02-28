@@ -4,7 +4,7 @@ import VTree from '@wsfe/vue-tree'
 
 const emit = defineEmits(['switchArticle'])
 
-function generateParts(bookId: string, testId: string | number, maxPartNum: number) {
+function generateParts(bookId: string | number, testId: string | number, maxPartNum: number) {
   let parts = []
   for (let i = 1; i < maxPartNum + 1; i++) {
     parts.push({
@@ -15,7 +15,7 @@ function generateParts(bookId: string, testId: string | number, maxPartNum: numb
   return parts
 }
 
-function generateTests(bookId: string, maxTestNum: number) {
+function generateTests(bookId: string | number, maxTestNum: number) {
   let tests = []
   for (let i = 1; i < maxTestNum + 1; i++) {
     tests.push({
@@ -39,7 +39,7 @@ function generateBooks(bookStart: any, bookEnd: number) {
   return books
 }
 
-function selectArticle(node) {
+function selectArticle(node: { id: string }) {
   let splitArr = node.id.split('-')
   const bookId = splitArr[1]
   const testId = splitArr[2]
