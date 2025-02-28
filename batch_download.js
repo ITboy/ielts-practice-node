@@ -23,7 +23,7 @@ async function downloadFile(destDir, url) {
 }
 
 async function fetchFileObjs() {
-  const url = 'http://127.0.0.1:8080/cambridge-listening/player/articles'
+  const url = 'http://127.0.0.1/cambridge-listening/player/articles'
   try {
     const response = await fetch(url)
     if (!response.ok) {

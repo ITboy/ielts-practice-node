@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, watchEffect } from 'vue'
 import BasicAudioPlayer from './BasicAudioPlayer.vue'
 import PlayList from './PlayList.vue'
@@ -13,9 +13,9 @@ const props = defineProps({
 })
 
 // 声明子组建实例，组建被mounted后该值会被自动绑定
-const basicAudioPlayer = ref(null)
-const playTranscript = ref(null)
-const shortCutKey = ref(null)
+const basicAudioPlayer: any = ref(null)
+const playTranscript: any = ref(null)
+const shortCutKey: any = ref(null)
 
 let bookNum = ref(props.defaultBookNum)
 let testNum = ref(props.defaultTestNum)
@@ -54,20 +54,20 @@ let prevOrNext = ref('')
 let editable = ref(false)
 
 // 播放列表
-let audioListName = ref('默认播放列表')
+//let audioListName = ref('默认播放列表')
 let audioList = ref([{ title: '', src: '' }])
-let currentAudioIndex = ref(0)
+//let currentAudioIndex = ref(0)
 
 // 初始化数据并监听数据源变化及时更新
-const GET_ARTICLE_URL = 'http://127.0.0.1:8080/cambridge-listening/player/article?'
+const GET_ARTICLE_URL = '/cambridge-listening/player/article?'
 
 watchEffect(async () => {
   let response = await fetch(
     GET_ARTICLE_URL +
       new URLSearchParams({
-        bookNum: bookNum.value,
-        testNum: testNum.value,
-        partNum: partNum.value
+        bookNum: bookNum.value + '',
+        testNum: testNum.value + '',
+        partNum: partNum.value + ''
       }).toString()
   )
   let json = await response.json()
