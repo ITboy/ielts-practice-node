@@ -105,7 +105,6 @@ function switchArticle(bookId, testId, partId) {
   bookNum.value = bookId
   testNum.value = testId
   partNum.value = partId
-  seekItem(0)
 }
 
 // 播放状态的唯一修改入口，该方法只能被底层播放器播放状态修改事件调用，外界要修改播放状态需调用playOrPause()方法
@@ -253,7 +252,7 @@ function nextArticle() {
 
 function seekNextPart() {
   const currentPartNum = parseInt(partNum.value)
-  let nextPartNum = (currentPartNum + 1) % 4
+  let nextPartNum = (currentPartNum % 4) + 1
   switchArticle(bookNum.value, testNum.value, nextPartNum + '')
 }
 
@@ -276,18 +275,21 @@ function inSkipPeriods(currentTime) {
  */
 function onPlaying() {
   let currentTime = basicAudioPlayer.value.$refs.rawAudioPlayer.currentTime * 1000
-
+  console.log('[onPlaying] currentTime=' + currentTime)
   if (filter_non_content) {
     if (currentTime < article.value.startTime) {
+      console.log('[onPlaying] 跳过音频开头的时间，直接跳转到首句播放')
       seekItem(0)
       return
     } else if (currentTime > article.value.endTime) {
       nextArticle()
+      console.log('[onPlaying] 跳过音频结尾的时间，跳转到下篇文章播放')
     } else {
       let skipPeriod = inSkipPeriods(currentTime)
       if (skipPeriod != undefined) {
         currentItemIndex.value = findItemIndex(skipPeriod.endTime + 1000)
         seekItem(currentItemIndex.value)
+        console.log('[onPlaying] 跳过音频中间的时间，跳转到下个条目开头播放')
       }
     }
   }
