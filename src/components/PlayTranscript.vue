@@ -10,7 +10,7 @@ const props = defineProps({
   editable: Boolean
 })
 
-const emit = defineEmits(['chooseItem', 'setShortCutKeyEditable'])
+const emit = defineEmits(['setShortCutKeyEditable', 'onClickTranscriptItem'])
 
 let currentItemIndex = ref(-1)
 let currentEditIndex = ref(-1)
@@ -54,9 +54,8 @@ function chooseItem(self, index) {
   scrollToMiddle(self, index)
 }
 
-function onClick(self, index) {
-  scrollToMiddle(self, index)
-  emit('chooseItem', index)
+function onClick(index) {
+  emit('onClickTranscriptItem', index)
 }
 
 defineExpose({ setEditable, chooseItem })
@@ -84,7 +83,7 @@ defineExpose({ setEditable, chooseItem })
           :key="index"
           :class="[currentItemIndex == index ? 'lt-a-active' : '']"
           :ref="'tr-' + index"
-          @click="onClick(this, index)"
+          @click="onClick(index)"
         >
           <td class="listen-read">
             <div class="listen-flex">
@@ -166,6 +165,12 @@ tr {
 
 td.listen-write {
   padding: 0;
+}
+
+@media only screen and (max-width: 768px) {
+  .listen-write {
+    display: none;
+  }
 }
 
 .listen-table {

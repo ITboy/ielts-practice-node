@@ -16,6 +16,7 @@ const props = defineProps({
 const basicAudioPlayer: any = ref(null)
 const playTranscript: any = ref(null)
 const shortCutKey: any = ref(null)
+const rightPannel: any = ref(null)
 
 let bookNum = ref(props.defaultBookNum)
 let testNum = ref(props.defaultTestNum)
@@ -24,14 +25,17 @@ const videoPrefix = '/audio/ielts/'
 
 // 数据源信息
 let article = ref({
-  playItems: []
+  playItems: [],
+  startTime: 0,
+  endTime: -1,
+  skipPeriods: []
 })
 
 // 播放状态
 // 注意修改该状态能控制播放行为，值包括 playing, pausing, stop
 let playStatus = ref('stop')
 
-let currentItemIndex = ref(0)
+let currentItemIndex = ref(-1)
 
 // 播放选项
 
@@ -54,12 +58,17 @@ let prevOrNext = ref('')
 let editable = ref(false)
 
 // 播放列表
+let filter_non_content = true
 //let audioListName = ref('默认播放列表')
 let audioList = ref([{ title: '', src: '' }])
 //let currentAudioIndex = ref(0)
+let listLoopMode = ref('single')
+const supportListLoopModes = ['single', 'test'] //book, list
 
 // 初始化数据并监听数据源变化及时更新
-const GET_ARTICLE_URL = '/cambridge-listening/player/article?'
+const URL_PREFIX = '' //'http://127.0.0.1:8080'
+const GET_ARTICLE_URL = URL_PREFIX + '/cambridge-listening/player/article?'
+const SPLIT_ITEM_URL = URL_PREFIX + '/cambridge-listening/player/split-item?'
 
 watchEffect(async () => {
   let response = await fetch(
@@ -71,7 +80,11 @@ watchEffect(async () => {
       }).toString()
   )
   let json = await response.json()
-  article.value.playItems = json.items
+  article.value.playItems = json.items.filter((item) => item.itemType == 1)
+  article.value.startTime = json.items[0].startTime
+  article.value.endTime = article.value.playItems[article.value.playItems.length - 1].endTime
+  article.value.skipPeriods = json.items.filter((item) => item.itemType != 1)
+
   let video =
     videoPrefix + 'book-' + bookNum.value + '/test-' + testNum.value + '/' + json.videoPath
   let title = '【听力】C' + bookNum.value + ' Test ' + testNum.value + ' Part ' + partNum.value
@@ -92,6 +105,7 @@ function switchArticle(bookId, testId, partId) {
   bookNum.value = bookId
   testNum.value = testId
   partNum.value = partId
+  seekItem(0)
 }
 
 // 播放状态的唯一修改入口，该方法只能被底层播放器播放状态修改事件调用，外界要修改播放状态需调用playOrPause()方法
@@ -228,6 +242,32 @@ function findItemIndex(currentTime) {
   return 0
 }
 
+function nextArticle() {
+  if (listLoopMode.value == 'single') {
+    seekItem(0)
+    return
+  } else if (listLoopMode.value == 'test') {
+    seekNextPart()
+  }
+}
+
+function seekNextPart() {
+  const currentPartNum = parseInt(partNum.value)
+  let nextPartNum = (currentPartNum + 1) % 4
+  switchArticle(bookNum.value, testNum.value, nextPartNum + '')
+}
+
+function inSkipPeriods(currentTime) {
+  let filterPeriods = article.value.skipPeriods.filter(
+    (skipPeriod) => currentTime > skipPeriod.startTime && currentTime < skipPeriod.endTime
+  )
+  if (filterPeriods.length > 0) {
+    return filterPeriods[0]
+  } else {
+    return undefined
+  }
+}
+
 /* 循环播放控制和进度更新的入口
  * 总共解决以下几种情况：
  * 1. 正常音频往下播放到下一个条目，此时应当更新当前条目索引
@@ -236,6 +276,21 @@ function findItemIndex(currentTime) {
  */
 function onPlaying() {
   let currentTime = basicAudioPlayer.value.$refs.rawAudioPlayer.currentTime * 1000
+
+  if (filter_non_content) {
+    if (currentTime < article.value.startTime) {
+      seekItem(0)
+      return
+    } else if (currentTime > article.value.endTime) {
+      nextArticle()
+    } else {
+      let skipPeriod = inSkipPeriods(currentTime)
+      if (skipPeriod != undefined) {
+        currentItemIndex.value = findItemIndex(skipPeriod.endTime + 1000)
+        seekItem(currentItemIndex.value)
+      }
+    }
+  }
 
   let checkItemIndex = currentItemIndex.value
   if (itemLoopMode.value == 'ab' && loopPointB.value < checkItemIndex) {
@@ -308,6 +363,50 @@ function setShortCutKeyEditable(state) {
     console.log('[setShortCutKeyEditable] ignore state: ' + state)
   }
 }
+
+function setNextListMode() {
+  let currentIndex = supportListLoopModes.findIndex((element) => element == listLoopMode.value)
+  currentIndex += 1
+  if (currentIndex >= supportListLoopModes.length) {
+    currentIndex = 0
+  }
+  listLoopMode.value = supportListLoopModes[currentIndex]
+}
+
+async function splitItem() {
+  let currentTime = basicAudioPlayer.value.$refs.rawAudioPlayer.currentTime * 1000
+  let currentItem = article.value.playItems[currentItemIndex.value]
+  let nextItem = article.value.playItems[currentItemIndex.value + 1]
+
+  let response = await fetch(
+    SPLIT_ITEM_URL +
+      new URLSearchParams({
+        splitItemId: currentItem.id,
+        nextItemId: nextItem.id,
+        splitTime: currentTime.toFixed()
+      }).toString()
+  )
+  let text = await response.text()
+  console.log(
+    '[splitItem] splitItemId: ' +
+      currentItem.id +
+      ', nextItemId: ' +
+      nextItem.id +
+      ',  splitTime: ' +
+      currentTime +
+      ', resp: ' +
+      text
+  )
+}
+
+function loadedMetaData() {
+  console.log('loadedMetaData')
+  play()
+}
+
+function foldOrUnfold() {
+  rightPannel.value.style.display = 'none'
+}
 </script>
 
 <template>
@@ -318,6 +417,7 @@ function setShortCutKeyEditable(state) {
     @on-pause="onChangePlayStatus('pausing')"
     @progress-end="onProgressEnd()"
     @playing="onPlaying()"
+    @loadedmetadata="loadedMetaData()"
   ></BasicAudioPlayer>
 
   <div class="main">
@@ -327,9 +427,14 @@ function setShortCutKeyEditable(state) {
       :editable="editable"
       @choose-item="(index) => seekItem(index)"
       @set-short-cut-key-editable="(state) => setShortCutKeyEditable(state)"
+      @on-click-transcript-item="
+        (index) => {
+          seekItem(index)
+        }
+      "
     ></PlayTranscript>
 
-    <div>
+    <div ref="rightPannel">
       <PlayControl
         ref="playControl"
         :playState="playStatus"
@@ -348,6 +453,7 @@ function setShortCutKeyEditable(state) {
       <PlayList
         @switch-article="(bookId, testId, partId) => switchArticle(bookId, testId, partId)"
       ></PlayList>
+      <button @click="foldOrUnfold()">折叠</button>
     </div>
 
     <ShortCutKey
@@ -355,11 +461,14 @@ function setShortCutKeyEditable(state) {
       @pause-or-play="playStatus == 'playing' ? pause() : play()"
       @play-next="playNext()"
       @play-prev="playPrev()"
+      @go-to-first="seekItem(0)"
+      @split-item="splitItem()"
       @set-next-loop-mode="setNextLoopMode()"
       @set-loop-count="(count) => setItemLoopCount(count)"
       @set-point-a="(indexA) => setLoopPointA(indexA)"
       @set-point-b="(indexB) => setLoopPointB(indexB)"
       @set-transcript-editable="(state) => setTranscriptEditable(state)"
+      @set-next-list-mode="setNextListMode()"
     ></ShortCutKey>
   </div>
 </template>
