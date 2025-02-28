@@ -1,18 +1,65 @@
 <script setup>
+import { ref } from 'vue'
+
 const props = defineProps({
   playItems: {
     require: true,
     default: () => [],
     type: Array
   },
-  currentItemIndex: Number
+  editable: Boolean
 })
 
-const emit = defineEmits(['chooseItem'])
+const emit = defineEmits(['chooseItem', 'setShortCutKeyEditable'])
 
-function chooseItem(index) {
+let currentItemIndex = ref(-1)
+let currentEditIndex = ref(-1)
+
+function setEditable(state, index) {
+  console.log('[PlayTranscript] ' + 'state: ' + state + ', index: ' + index)
+  if (state) {
+    //document.getElementsByTagName('textarea')[index].focus()
+    this.$refs['text-' + index][0].focus()
+  } else {
+    index = currentEditIndex.value
+    console.log('[PlayTranscript] ' + 'blur() index: ' + index)
+    this.$refs['text-' + index][0].blur()
+  }
+}
+
+function onFocusOrBlur(state, index) {
+  console.log('[PlayTranscript] ' + 'onFocusOrBlur: ' + state + ', index: ' + index)
+  if (state) {
+    currentEditIndex.value = index
+  } else {
+    currentEditIndex.value = -1
+  }
+  emit('setShortCutKeyEditable', state)
+}
+
+function scrollToMiddle(self, index) {
+  const chosenTr = self.$refs['tr-' + index][0]
+  const tbody = chosenTr.parentElement
+  const viewHeight = tbody.clientHeight
+  const offsetTop = chosenTr.offsetTop
+  const scrollPercent = 2 / 5
+  let scrollPosition = offsetTop - scrollPercent * viewHeight
+  if (scrollPosition > 0) {
+    tbody.scrollTo(0, scrollPosition)
+  }
+}
+
+function chooseItem(self, index) {
+  currentItemIndex.value = index
+  scrollToMiddle(self, index)
+}
+
+function onClick(self, index) {
+  scrollToMiddle(self, index)
   emit('chooseItem', index)
 }
+
+defineExpose({ setEditable, chooseItem })
 </script>
 <template>
   <div class="transcript">
@@ -27,18 +74,17 @@ function chooseItem(index) {
           <th class="listen-write">
             <img src="https://ai-oss3.oss-cn-shenzhen.aliyuncs.com/operate/295_1656311916525.png" />
             <label style="font-size: 16px">我的听写</label
-            ><span style="font-size: 14px"
-              >单击输入，点击右侧<span style="color: red; font-weight: bold">保存</span
-              >按钮保存听写内容</span
-            >
+            ><span style="font-size: 14px">单击输入</span>
           </th>
         </tr>
       </thead>
       <tbody>
         <tr
           v-for="(playItem, index) in playItems"
+          :key="index"
           :class="[currentItemIndex == index ? 'lt-a-active' : '']"
-          @click="chooseItem(index)"
+          :ref="'tr-' + index"
+          @click="onClick(this, index)"
         >
           <td class="listen-read">
             <div class="listen-flex">
@@ -49,6 +95,7 @@ function chooseItem(index) {
           <td class="listen-write">
             <textarea
               text-index="1"
+              :ref="'text-' + index"
               data-adaptheight=""
               contenteditable="true"
               placeholder="在此输入您的听写内容，按键盘Tab键进入下一个输入框"
@@ -60,6 +107,8 @@ function chooseItem(index) {
                 overflow-y: hidden;
                 height: 50px;
               "
+              @focus="onFocusOrBlur(true, index)"
+              @blur="onFocusOrBlur(false, index)"
             ></textarea>
           </td>
         </tr>
@@ -72,16 +121,13 @@ function chooseItem(index) {
 .transcript {
   width: auto;
   margin-right: 15px;
-}
-
-tbody {
-  height: 695px;
+  scroll-behavior: smooth;
 }
 
 tr {
+  padding: 0rem;
   line-height: 18px;
   font-size: 15px;
-  padding: 1rem;
   color: #333333;
   font-size: 14px;
   cursor: pointer;
@@ -122,16 +168,13 @@ td.listen-write {
   padding: 0;
 }
 
-td.listen-read {
-  padding: 16px 15px;
-}
-
 .listen-table {
   width: 100%;
   background-color: #dde1e2;
   border-radius: 5px;
 }
 .listen-table > tbody {
+  display: block;
   height: 695px;
   overflow-y: auto;
   background-color: #ffffff;
@@ -140,6 +183,7 @@ td.listen-read {
 .listen-table > thead > tr > th {
   padding: 13px 0px 8px;
   width: 50%;
+  text-align: left;
 }
 .listen-table > thead > tr > th > span {
   font-size: 14px;
@@ -164,7 +208,9 @@ td.listen-read {
 }
 .listen-table > tbody > tr > td {
   border-bottom: 1px solid #dde1e291;
-  border-left: 1px solid #dde1e291;
+}
+.listen-read {
+  border-right: 1px solid #dde1e291;
 }
 .listen-table > tbody > tr > td > .listen-flex > img {
   width: 20px;
@@ -173,21 +219,27 @@ td.listen-read {
 .listen-table > tbody > tr > td > .listen-flex > span {
   align-self: center;
 }
-table {
-  display: table;
-  border-collapse: separate;
+table thead tr,
+table tbody tr,
+table tfoot tr {
   box-sizing: border-box;
-  text-indent: initial;
-  unicode-bidi: isolate;
-  line-height: normal;
-  font-weight: normal;
-  font-size: medium;
-  font-style: normal;
-  color: -internal-quirk-inherit;
-  text-align: start;
-  border-spacing: 2px;
-  border-color: gray;
-  white-space: normal;
-  font-variant: normal;
+  table-layout: fixed;
+  display: table;
+  width: 100%;
+}
+table tbody {
+  display: block;
+  width: calc(100% + 0px);
+  height: 695px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+.listen-table > tbody > tr > td > textarea {
+  border: 0;
+  width: 100%;
+  outline: none;
+  resize: none;
+  background-color: transparent;
+  overflow: hidden;
 }
 </style>

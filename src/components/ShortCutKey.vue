@@ -8,9 +8,12 @@ const emit = defineEmits([
   'setNextLoopMode', // ll
   'setLoopCount', // l+数字，l0表示无限循环
   'setPointA', // a+数字
-  'setPointB' // b+数字
+  'setPointB', // b+数字
+  'setTranscriptEditable'
 ])
+const EscKey = 'Escape'
 
+// control mode下的指令
 const commands = [
   { finalPattern: /^\x20$/, event: 'pauseOrPlay' },
   { finalPattern: /^n$/, event: 'playNext' },
@@ -41,6 +44,9 @@ const commands = [
   }
 ]
 
+// 支持control和edit两种模式
+let keyMode = ref('control')
+
 function allPendingCommands() {
   let allPendingCommands = []
   commands.forEach((command) => {
@@ -70,6 +76,30 @@ function clearKeyChain() {
   pendingCommands = allPendingCommands()
   finalCommands = allFinalCommands()
   keyChain = ''
+}
+
+function setEditable(isEditable) {
+  if (isEditable) {
+    switchEditMode()
+  } else {
+    switchControlMode()
+  }
+}
+
+function switchControlMode() {
+  console.log('[ShortCutKey] enter control mode')
+  clearKeyChain()
+  clearTimeout(timeoutHandle)
+  keyMode.value = 'control'
+  emit('setTranscriptEditable', false)
+}
+
+function switchEditMode() {
+  console.log('[ShortCutKey] enter edit mode')
+  clearKeyChain()
+  clearTimeout(timeoutHandle)
+  keyMode.value = 'edit'
+  emit('setTranscriptEditable', true)
 }
 
 function forceMakeDecision() {
@@ -106,16 +136,46 @@ function matchFinalCommand(finalCommands, keyChain) {
 }
 
 function onKeyPress(keyEvent) {
+  if (keyMode.value == 'control') {
+    onKeyPressInControlMode(keyEvent)
+  } else {
+    onKeyPressInEditMode(keyEvent)
+  }
+}
+
+function onKeyPressInEditMode(keyEvent) {
+  if (keyEvent.key == EscKey) {
+    switchControlMode()
+  } else {
+    console.log('editMode press key: ' + keyEvent.key)
+  }
+}
+
+function onKeyPressInControlMode(keyEvent) {
   keyEvent.preventDefault()
   let key = keyEvent.key
   const isDigitOrCharRegex = /^[\d|\w|\W]{1}$/
-  if (!isDigitOrCharRegex.test(key)) {
+  if (!isDigitOrCharRegex.test(key) && key != EscKey) {
     clearKeyChain()
     return
   }
+
   console.log('press: ' + key + ', keyChain: ' + keyChain + ', timeHandler: ' + timeoutHandle)
-  // 如果是第一个按键，则创建计时器
+
+  // 控制模式下按下esc清空一切状态
+  if (key == EscKey) {
+    clearKeyChain()
+    clearTimeout()
+    return
+  }
+
+  if (key == 'i') {
+    switchEditMode()
+    return
+  }
+
   if (keyChain.length == 0) {
+    // 如果是第一个按键，则创建计时器
     timeoutHandle = setTimeout(forceMakeDecision, 600)
   }
   keyChain += key
@@ -143,7 +203,9 @@ function onKeyPress(keyEvent) {
 }
 
 function onKeyDown(event) {
-  event.preventDefault()
+  if (keyMode.value == 'control') {
+    event.preventDefault()
+  }
 }
 
 onMounted(() => {
@@ -155,6 +217,8 @@ onUnmounted(() => {
   document.removeEventListener('keydown', onKeyDown)
   document.removeEventListener('keyup', onKeyPress)
 })
+
+defineExpose({ setEditable })
 </script>
 
 <template>
