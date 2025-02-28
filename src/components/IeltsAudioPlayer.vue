@@ -448,6 +448,7 @@ function foldOrUnfold() {
         @play-prev="playPrev()"
         @play-next="playNext()"
         @toggle-item-loop="(mode) => toggleItemLoopMode(mode)"
+        @switch-list-loop-mode="setNextListMode()"
       ></PlayControl>
 
       <PlayList
