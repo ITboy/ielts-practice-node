@@ -66,7 +66,7 @@ let listLoopMode = ref('single')
 const supportListLoopModes = ['single', 'test'] //book, list
 
 // 初始化数据并监听数据源变化及时更新
-const URL_PREFIX = '' //'http://127.0.0.1:8080'
+const URL_PREFIX = '/api' //'http://127.0.0.1:8080'
 const GET_ARTICLE_URL = URL_PREFIX + '/cambridge-listening/player/article?'
 const SPLIT_ITEM_URL = URL_PREFIX + '/cambridge-listening/player/split-item?'
 
