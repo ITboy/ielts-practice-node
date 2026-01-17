@@ -36,6 +36,22 @@ function generateBooks(bookStart: any, bookEnd: number) {
       children: generateTests(i, 4)
     })
   }
+  books.push({
+    title: 'pte',
+    id: 'book-3',
+    children: [
+      {
+        title: 'rs',
+        id: 'Test-3-1',
+        children: [
+          {
+            title: '1',
+            id: 'part-3-1-1'
+          }
+        ]
+      }
+    ]
+  })
   return books
 }
 
